@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
 import { generateSuggestions } from "../../../../lib/intelligence";
+import { researchMarket } from "../../../../lib/market-research";
 import { assertIndependentEndpoint, boundedList, INDEPENDENT_MODE } from "../../../../lib/independent-mode";
 
 const requestSchema = z.object({
@@ -89,6 +90,7 @@ export async function POST(request) {
       INDEPENDENT_MODE.maxSuggestionsPerSync,
     );
     result.intelligence_mode = parsed.data.intelligence_mode;
+    result.suggestions = await researchMarket(result);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 503 });
   }

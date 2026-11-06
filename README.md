@@ -159,6 +159,10 @@ The demo also bounds external work: one sync uses at most 100 repositories, retu
 
 The dashboard now has two modes. **Deterministic** remains the default and requires no AI credentials. **AI-assisted** is an explicit opt-in that sends a bounded, public GitHub summary to an OpenAI-compatible server-side endpoint configured with `INTELLIGENCE_PROVIDER_URL`, `INTELLIGENCE_API_KEY`, and optionally `INTELLIGENCE_MODEL`. Provider credentials are never sent to the browser. The response is parsed and evidence-checked before suggestions are shown; if the provider is unavailable, the request fails clearly instead of silently switching modes.
 
+### Market research before a post
+
+Before drafting, the dashboard can query current public Hacker News discussions for up to three candidate topics. It assigns each idea a transparent opportunity estimate from conversation volume, points/comments, freshness, and fit with the user's repository evidence. It also recommends a format such as a case study, architecture guide, practical guide, or problem-solution post. This is a prioritization signal, not a promise that an article will rank: search placement also depends on originality, quality, links, indexing, competition, and reader response.
+
 ## SEO guidance
 
 - Write a unique, descriptive title for each article.

@@ -19,9 +19,12 @@ export default function DashboardClient({ initialProfile, demoMode = false }) {
   const [imageStyle, setImageStyle] = useState(initialProfile?.preferences?.image_style || "clean technical diagrams with dark navy and coral accents");
   const [imageAltStyle, setImageAltStyle] = useState(initialProfile?.preferences?.image_alt_style || "Describe the diagram's subject and outcome in one concise sentence");
   const [intelligenceMode, setIntelligenceMode] = useState(initialProfile?.preferences?.intelligence_mode || "deterministic");
+  const [researching, setResearching] = useState(false);
+  const [drafts, setDrafts] = useState([]);
   useEffect(() => {
     if (demoMode) {
       setConnected(JSON.parse(window.localStorage.getItem("article-pulse-connections") || "{}"));
+      setDrafts(JSON.parse(window.localStorage.getItem("article-pulse-drafts") || "[]"));
       const saved = JSON.parse(window.localStorage.getItem("article-pulse-preferences") || "{}");
       setAutoPublish(Boolean(saved.auto_publish));
       if (saved.publish_hour !== undefined) setPublishHour(saved.publish_hour);
@@ -56,14 +59,30 @@ export default function DashboardClient({ initialProfile, demoMode = false }) {
           { title: "What I learned building a publishing workflow", problem: "Which recurring constraint costs the most time in content operations?", solution: "Document the decision, trade-offs, implementation, and measurable result.", evidence: ["demo/article-pulse"], tags: ["publishing", "developer-tools", "productivity"] },
         ],
       });
-      setMessage("Demo profile loaded with 3 sample article suggestions.");
+      setMessage("Demo profile loaded with market-ranked article suggestions.");
       return;
     }
+
     const response = await fetch("/api/github/sync", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ github_url: githubUrl || undefined, intelligence_mode: intelligenceMode }) });
     const result = await response.json();
     if (!response.ok) return setMessage(result.error || "GitHub sync failed");
     setProfile(result);
     setMessage(`${result.suggestions.length} evidence-based article suggestions ready.`);
+  }
+
+  async function research() {
+    if (!profile?.suggestions?.length) {
+      setMessage("Sync GitHub before researching the market.");
+      return;
+    }
+    setResearching(true);
+    setMessage("Researching current developer conversations and ranking your post angles…");
+    const response = await fetch("/api/research", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ profile }) });
+    const result = await response.json();
+    setResearching(false);
+    if (!response.ok) return setMessage(result.error || "Market research failed.");
+    setProfile((current) => ({ ...current, suggestions: result.suggestions, researched_at: result.researched_at }));
+    setMessage("Market research complete. Scores are estimates, not ranking guarantees.");
   }
 
   async function connect(event) {
@@ -119,23 +138,28 @@ export default function DashboardClient({ initialProfile, demoMode = false }) {
   }
 
   async function saveSuggestion(suggestion) {
+    const body = `# ${suggestion.title}\n\n## Post type\n\n${suggestion.post_type || "problem-solution"}\n\n## The question\n\n${suggestion.problem}\n\n## The solution\n\n${suggestion.solution}\n\n## Why this topic now\n\n${suggestion.market?.ranking_note || "Review current market evidence before publishing."}\n\n## Public evidence\n\n${(suggestion.evidence || []).map((item) => `- ${item}`).join("\n")}`;
     if (demoMode) {
-      setMessage("Demo draft saved locally for this browser session.");
+      const draft = { id: crypto.randomUUID(), title: suggestion.title, body_markdown: body, tags: suggestion.tags, market: suggestion.market || null, created_at: new Date().toISOString() };
+      const next = [draft, ...drafts];
+      setDrafts(next);
+      window.localStorage.setItem("article-pulse-drafts", JSON.stringify(next));
+      setMessage(`Created a reviewable ${suggestion.post_type || "problem-solution"} draft locally.`);
       return;
     }
-    const body = `# ${suggestion.title}\n\n## The question\n\n${suggestion.problem}\n\n## The solution\n\n${suggestion.solution}\n\n## Public evidence\n\n${suggestion.evidence.map((item) => `- ${item}`).join("\n")}`;
-    const response = await fetch("/api/articles", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: suggestion.title, body_markdown: body, tags: suggestion.tags, source: { evidence: suggestion.evidence } }) });
+    const response = await fetch("/api/articles", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: suggestion.title, body_markdown: body, tags: suggestion.tags, source: { evidence: suggestion.evidence, market: suggestion.market, post_type: suggestion.post_type } }) });
     setMessage(response.ok ? "Draft saved. Review it before publishing." : "Could not save draft.");
   }
 
   return <div className="dashboard-body">
-    <div className="dashboard-actions"><button className="primary-button" onClick={sync}>Sync GitHub and suggest articles →</button><span>{message}</span></div>
+    <div className="dashboard-actions"><button className="primary-button" onClick={sync}>Sync GitHub and suggest articles →</button><button type="button" onClick={research} disabled={researching}>{researching ? "Researching…" : "Research market & rank ideas"}</button><span>{message}</span></div>
     <div className="dashboard-grid">
       <section className="work-card"><h2>Account connections</h2><p className="muted">{demoMode ? "Independent mode: deterministic code only. It reads public GitHub data, uses no AI service or generation token, and stores the result in local JSON." : "Secrets are encrypted before storage and are never sent back to this page."}</p><div className="github-connect"><label className="field-label">GitHub profile URL<input type="url" value={githubUrl} onChange={(event) => setGithubUrl(event.target.value)} placeholder="https://github.com/your-username" /></label><button type="button" onClick={connectGitHub}>{connected.github ? "Refresh GitHub profile" : "Connect GitHub account"}</button></div><div className="connection-list"><div><span>GitHub</span><b className={connected.github ? "connected" : "not-connected"}>{connected.github ? "Connected" : "Not connected"}</b></div><div><span>dev.to</span><b className={connected.devto ? "connected" : "not-connected"}>{connected.devto ? "Connected" : "Not connected"}</b></div><div><span>Hashnode</span><b className={connected.hashnode ? "connected" : "not-connected"}>{connected.hashnode ? "Connected" : "Not connected"}</b></div></div><form onSubmit={connect}><select value={provider} onChange={(event) => setProvider(event.target.value)}><option value="devto">dev.to API key</option><option value="hashnode">Hashnode API token</option></select><input required type="password" placeholder="Credential" value={secret} onChange={(event) => setSecret(event.target.value)} />{provider === "hashnode" && <input required placeholder="Hashnode publication ID" value={publicationId} onChange={(event) => setPublicationId(event.target.value)} />}<button type="submit">Connect securely</button></form></section>
       <section className="work-card"><h2>Content identity</h2><p className="muted">These saved preferences shape article ideas, writing style, SEO tags, and image descriptions for this account.</p><form onSubmit={savePreferences}><label className="field-label">Intelligence mode<select value={intelligenceMode} onChange={(event) => setIntelligenceMode(event.target.value)}><option value="deterministic">Deterministic — no AI, no token</option><option value="ai">AI-assisted — optional provider</option></select></label><p className="muted">{intelligenceMode === "ai" ? "AI mode is opt-in and requires a server-side OpenAI-compatible provider configuration." : "Deterministic mode stays local, bounded, and works without AI credentials."}</p><label className="field-label">GitHub profile URL<input type="url" placeholder="https://github.com/your-username" value={githubUrl} onChange={(event) => setGithubUrl(event.target.value)} /></label><label className="field-label">Topics<input placeholder="automation, Python, SaaS" value={topics} onChange={(event) => setTopics(event.target.value)} /></label><label className="field-label">Target audience<input value={audience} onChange={(event) => setAudience(event.target.value)} /></label><label className="field-label">Writing tone<input value={tone} onChange={(event) => setTone(event.target.value)} /></label><label className="field-label">Article formats<input value={formats} onChange={(event) => setFormats(event.target.value)} /></label><label className="field-label">Image style<input value={imageStyle} onChange={(event) => setImageStyle(event.target.value)} /></label><label className="field-label">Image alt-text rule<input value={imageAltStyle} onChange={(event) => setImageAltStyle(event.target.value)} /></label><button type="submit">Save content identity</button></form></section>
       <section className="work-card"><h2>Automatic publishing</h2><p className="muted">Scheduled articles publish through every connected provider. Unconnected platforms are reported as failures.</p><form onSubmit={savePreferences}><label className="toggle-row"><input type="checkbox" checked={autoPublish} onChange={(event) => setAutoPublish(event.target.checked)} /><span>Enable automatic publishing</span></label><label className="field-label">Daily publish hour<select value={publishHour} onChange={(event) => setPublishHour(event.target.value)}>{Array.from({ length: 24 }, (_, hour) => <option key={hour} value={hour}>{String(hour).padStart(2, "0")}:00</option>)}</select></label><button type="submit">Save publishing schedule</button></form></section>
       <section className="work-card"><h2>Profile signals</h2>{profile ? <><p><b>{profile.profile?.name}</b> · @{profile.profile?.login}</p><p className="muted">{profile.profile?.public_repos || 0} public repositories · languages and topics used as evidence</p></> : <p className="muted">Sync GitHub to load your public work.</p>}</section>
     </div>
-    {profile?.suggestions?.length ? <section className="suggestions"><h2>Suggested articles</h2><div className="suggestion-grid">{profile.suggestions.map((suggestion) => <article className="suggestion" key={suggestion.title}><p className="eyebrow">Evidence-based idea</p><h3>{suggestion.title}</h3><p><b>Question:</b> {suggestion.problem}</p><p><b>Solution:</b> {suggestion.solution}</p><div className="tag-row">{suggestion.tags.map((tag) => <span key={tag}>{tag}</span>)}</div><button onClick={() => saveSuggestion(suggestion)}>Save as draft</button></article>)}</div></section> : null}
+    {profile?.suggestions?.length ? <section className="suggestions"><h2>Suggested articles</h2><p className="muted">Each idea is matched to a post format and ranked from live public conversation signals, freshness, engagement, and your project evidence. No score guarantees search placement.</p><div className="suggestion-grid">{profile.suggestions.map((suggestion) => <article className="suggestion" key={suggestion.title}><p className="eyebrow">{suggestion.post_type || "Evidence-based idea"} {suggestion.market ? `· ${suggestion.market.opportunity_score}/100 opportunity` : ""}</p><h3>{suggestion.title}</h3><p><b>Question:</b> {suggestion.problem}</p><p><b>Solution:</b> {suggestion.solution}</p>{suggestion.market ? <><p><b>Why now:</b> {suggestion.market.ranking_note}</p><p className="muted">Demand {suggestion.market.signals.demand}% · engagement {suggestion.market.signals.engagement}% · freshness {suggestion.market.signals.freshness}% · evidence fit {suggestion.market.signals.evidence_fit}%</p></> : null}<div className="tag-row">{suggestion.tags.map((tag) => <span key={tag}>{tag}</span>)}</div><button onClick={() => saveSuggestion(suggestion)}>Create reviewable draft</button></article>)}</div></section> : null}
+    {demoMode && drafts.length ? <section className="suggestions"><h2>Review queue</h2><p className="muted">{drafts.length} local draft{drafts.length === 1 ? "" : "s"} created. Nothing is published automatically from this queue.</p></section> : null}
   </div>;
 }
