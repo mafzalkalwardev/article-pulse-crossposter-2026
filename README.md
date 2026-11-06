@@ -159,6 +159,21 @@ The demo also bounds external work: one sync uses at most 100 repositories, retu
 
 The dashboard now has two modes. **Deterministic** remains the default and requires no AI credentials. **AI-assisted** is an explicit opt-in that sends a bounded, public GitHub summary to an OpenAI-compatible server-side endpoint configured with `INTELLIGENCE_PROVIDER_URL`, `INTELLIGENCE_API_KEY`, and optionally `INTELLIGENCE_MODEL`. Provider credentials are never sent to the browser. The response is parsed and evidence-checked before suggestions are shown; if the provider is unavailable, the request fails clearly instead of silently switching modes.
 
+### Connect and publish to Hashnode
+
+The local demo intentionally does not store real publishing credentials. For live Hashnode publishing:
+
+1. Create a Supabase project and run `supabase\migrations\001_initial.sql` and `supabase\migrations\002_content_identity.sql`.
+2. Copy `.env.local.example` to `.env.local` and set the Supabase URL, anon key, service-role key, `APP_ENCRYPTION_KEY`, and `NEXT_PUBLIC_APP_URL`.
+3. Restart Next.js so `/dashboard` leaves demo mode.
+4. Sign in to Hashnode with Google in the browser.
+5. In Hashnode Account settings → Developer / API tokens, create a Personal Access Token. Do not paste it into chat or commit it.
+6. In Article Pulse choose **Hashnode Personal Access Token**, enter the token and the publication ID, then choose **Connect your Hashnode account**.
+7. Article Pulse verifies the token and publication before encrypting and storing the credential in Supabase.
+8. Create a reviewable draft, inspect its market evidence, and publish only after confirming the final content. Hashnode API publishing may require the publication's Pro plan and the account must have permission to publish.
+
+Google login is used on Hashnode's website; the publishing API itself uses the Personal Access Token. Demo mode will not claim that a real Hashnode account was connected.
+
 ### Market research before a post
 
 Before drafting, the dashboard can query current public Hacker News discussions for up to three candidate topics. It assigns each idea a transparent opportunity estimate from conversation volume, points/comments, freshness, and fit with the user's repository evidence. It also recommends a format such as a case study, architecture guide, practical guide, or problem-solution post. This is a prioritization signal, not a promise that an article will rank: search placement also depends on originality, quality, links, indexing, competition, and reader response.
