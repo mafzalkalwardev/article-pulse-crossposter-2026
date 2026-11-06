@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="A calm, local-first dashboard for publishing Markdown articles to Hashnode and dev.to." />
+    <meta name="theme-color" content="#111827" />
+    <title>Article Pulse | Publishing control room</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/">
+        <span class="brand-mark">⌁</span>
+        <span><strong>Article Pulse</strong><small>Crossposter</small></span>
+      </a>
+      <div class="topbar-actions">
+        <span class="status-dot"><i></i> Local workspace online</span>
+        <button class="avatar" aria-label="Account">MK</button>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Publishing control room</p>
+          <h1>Ship your best ideas,<br /><em>everywhere they belong.</em></h1>
+          <p class="hero-copy">One calm workspace for validating, scheduling, and cross-posting approved Markdown articles to Hashnode and dev.to.</p>
+          <div class="hero-actions">
+            <button class="button button-primary" id="preview-button">Preview next publish <span>→</span></button>
+            <button class="button button-quiet" id="refresh-button">Refresh workspace</button>
+          </div>
+        </div>
+        <div class="pulse-card">
+          <div class="pulse-orbit"></div>
+          <div class="pulse-center"><span>24</span><small>articles<br />published</small></div>
+          <div class="orbit-label orbit-label-top">Hashnode <strong>12</strong></div>
+          <div class="orbit-label orbit-label-bottom">dev.to <strong>12</strong></div>
+        </div>
+      </section>
+
+      <section class="metrics" aria-label="Publishing metrics">
+        <article class="metric-card"><span class="metric-icon coral">↗</span><div><strong>24</strong><span>Published this month</span></div><b class="positive">+18%</b></article>
+        <article class="metric-card"><span class="metric-icon blue">◷</span><div><strong>18:00</strong><span>Next scheduled run</span></div><b class="neutral">Daily</b></article>
+        <article class="metric-card"><span class="metric-icon green">✓</span><div><strong>98.6%</strong><span>Delivery success rate</span></div><b class="positive">Healthy</b></article>
+      </section>
+
+      <section class="content-grid">
+        <div class="panel articles-panel">
+          <div class="panel-heading"><div><p class="eyebrow">Content queue</p><h2>Ready to publish</h2></div><span class="count-pill" id="article-count">Loading…</span></div>
+          <div class="article-list" id="article-list"><div class="loading">Loading Markdown articles…</div></div>
+          <a class="panel-link" href="https://github.com/mafzalkalwardev/article-pulse-crossposter-2026/tree/master/articles" target="_blank" rel="noreferrer">Open articles folder <span>↗</span></a>
+        </div>
+        <div class="panel activity-panel">
+          <div class="panel-heading"><div><p class="eyebrow">Activity</p><h2>Recent publishing</h2></div><span class="live-pill"><i></i> Live</span></div>
+          <div class="activity-list">
+            <div class="activity-item"><span class="platform-icon hashnode">H</span><div><strong>Designing resilient automations</strong><span>Published to Hashnode</span></div><time>2h</time></div>
+            <div class="activity-item"><span class="platform-icon devto">D</span><div><strong>Markdown as a content API</strong><span>Published to dev.to</span></div><time>5h</time></div>
+            <div class="activity-item"><span class="platform-icon hashnode">H</span><div><strong>Secrets that stay local</strong><span>Published to Hashnode</span></div><time>1d</time></div>
+          </div>
+          <a class="panel-link" href="https://github.com/mafzalkalwardev/article-pulse-crossposter-2026" target="_blank" rel="noreferrer">View repository <span>↗</span></a>
+        </div>
+      </section>
+    </main>
+    <div class="toast" id="toast" role="status"></div>
+    <script src="/app.js"></script>
+  </body>
+</html>

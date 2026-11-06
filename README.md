@@ -6,6 +6,18 @@ Automate approved Markdown article publishing to **Hashnode** and **dev.to** fro
 
 ![Publishing workflow](assets/workflow.svg)
 
+## Product preview
+
+The repository includes a lightweight local frontend and backend. Start it with:
+
+```bash
+npm start
+```
+
+Then open `http://localhost:4173`. The frontend is a responsive publishing control room; the backend serves the static app and exposes `GET /api/health` and `GET /api/articles` for the Markdown queue.
+
+![Article Pulse dashboard](assets/dashboard-preview.svg)
+
 ## Features
 
 - **Markdown-first publishing**: keep articles in version-controlled Markdown files.
@@ -18,6 +30,8 @@ Automate approved Markdown article publishing to **Hashnode** and **dev.to** fro
 - **Scheduling-ready design**: run manually or from a local daily schedule.
 - **Audit trail**: keep publication results and errors in a local state file.
 - **Public documentation**: the workflow, configuration, and operational boundaries are documented here.
+- **Dashboard UI**: see the current publishing queue, schedule, delivery health, and recent activity at a glance.
+- **Backend API**: use the local API as the integration boundary for future Hashnode and dev.to publishing adapters.
 
 ## Why this project exists
 
