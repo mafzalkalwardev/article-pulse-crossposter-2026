@@ -70,6 +70,41 @@ The `publish: true` flag is an explicit publishing boundary. Files without it ar
 5. Save returned URLs and IDs to the local publication state.
 6. Review failures and retry only the affected platform.
 
+## Hosted application
+
+Article Pulse now includes a production-oriented Next.js + Supabase application foundation:
+
+- Magic-link account creation and sign-in.
+- Supabase profiles, articles, and publishing-connection persistence with row-level security.
+- GitHub profile/repository synchronization.
+- Deterministic article suggestions grounded in project evidence.
+- Encrypted connection secret storage using AES-256-GCM.
+- Hashnode GraphQL and dev.to publishing adapters.
+- Draft-first publishing boundaries and idempotent target tracking fields.
+- Secure provider connection UI for GitHub, Hashnode, and dev.to.
+- Vercel cron endpoint for scheduled publishing runs.
+
+Run the web app locally:
+
+```bash
+npm install
+cp .env.local.example .env.local
+npm run dev
+```
+
+Apply `supabase/migrations/001_initial.sql` to a Supabase project, then configure the environment variables in `.env.local` and Vercel.
+
+### Deploying online
+
+1. Create a Supabase project and run the SQL migration.
+2. Enable Supabase email magic links and set the callback URL to `/auth/callback`.
+3. Import this repository into Vercel.
+4. Add the variables from `.env.local.example`, plus a random `CRON_SECRET`.
+5. Add the Vercel production URL to Supabase Auth redirect URLs.
+6. Configure GitHub, Hashnode, and dev.to credentials from the authenticated dashboard.
+
+The application is intentionally not claimed as deployed until those project credentials and redirect URLs exist. The repository contains the complete hosted application boundary, but Vercel and Supabase are separate user-owned services.
+
 ## Local configuration
 
 Copy `.env.example` to `.env` and provide tokens locally. Never commit `.env`.

@@ -1,14 +1,24 @@
 {
-  "name": "article-pulse-crossposter",
-  "version": "0.1.0",
+  "name": "article-pulse",
+  "version": "1.0.0",
   "private": true,
-  "description": "A local-first Markdown publishing dashboard for Hashnode and dev.to.",
-  "type": "module",
+  "description": "Hosted content intelligence and cross-publishing workspace for Hashnode and dev.to.",
   "scripts": {
-    "start": "node server.js",
-    "check": "node --check server.js"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "check": "next build"
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.46.1",
+    "next": "^16.4.5",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.6.7"
   }
 }
