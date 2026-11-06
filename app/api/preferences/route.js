@@ -6,6 +6,13 @@ const preferencesSchema = z.object({
   auto_publish: z.boolean(),
   timezone: z.string().min(1).max(80),
   publish_hour: z.number().int().min(0).max(23),
+  github_url: z.string().url().optional().or(z.literal("")),
+  topics: z.array(z.string().min(1).max(40)).max(12),
+  audience: z.string().min(1).max(120),
+  tone: z.string().min(1).max(80),
+  formats: z.array(z.string().min(1).max(60)).min(1).max(8),
+  image_style: z.string().min(1).max(120),
+  image_alt_style: z.string().min(1).max(160),
 });
 
 export async function POST(request) {

@@ -11,12 +11,26 @@ export default function DashboardClient({ initialProfile, demoMode = false }) {
   const [connected, setConnected] = useState({});
   const [autoPublish, setAutoPublish] = useState(false);
   const [publishHour, setPublishHour] = useState(18);
+  const [githubUrl, setGithubUrl] = useState(initialProfile?.preferences?.github_url || "");
+  const [topics, setTopics] = useState((initialProfile?.preferences?.topics || []).join(", "));
+  const [audience, setAudience] = useState(initialProfile?.preferences?.audience || "developers and automation builders");
+  const [tone, setTone] = useState(initialProfile?.preferences?.tone || "clear, practical, and evidence-based");
+  const [formats, setFormats] = useState((initialProfile?.preferences?.formats || ["practical guide", "case study", "problem-solution"]).join(", "));
+  const [imageStyle, setImageStyle] = useState(initialProfile?.preferences?.image_style || "clean technical diagrams with dark navy and coral accents");
+  const [imageAltStyle, setImageAltStyle] = useState(initialProfile?.preferences?.image_alt_style || "Describe the diagram's subject and outcome in one concise sentence");
   useEffect(() => {
     if (demoMode) {
       setConnected(JSON.parse(window.localStorage.getItem("article-pulse-connections") || "{}"));
       const saved = JSON.parse(window.localStorage.getItem("article-pulse-preferences") || "{}");
       setAutoPublish(Boolean(saved.auto_publish));
       if (saved.publish_hour !== undefined) setPublishHour(saved.publish_hour);
+      setGithubUrl(saved.github_url || "");
+      setTopics((saved.topics || []).join(", "));
+      setAudience(saved.audience || audience);
+      setTone(saved.tone || tone);
+      setFormats((saved.formats || formats.split(", ")).join(", "));
+      setImageStyle(saved.image_style || imageStyle);
+      setImageAltStyle(saved.image_alt_style || imageAltStyle);
     }
   }, [demoMode]);
 
@@ -34,7 +48,7 @@ export default function DashboardClient({ initialProfile, demoMode = false }) {
       setMessage("Demo profile loaded with 3 sample article suggestions.");
       return;
     }
-    const response = await fetch("/api/github/sync", { method: "POST" });
+    const response = await fetch("/api/github/sync", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ github_url: githubUrl || undefined }) });
     const result = await response.json();
     if (!response.ok) return setMessage(result.error || "GitHub sync failed");
     setProfile(result);
@@ -69,12 +83,13 @@ export default function DashboardClient({ initialProfile, demoMode = false }) {
 
   async function savePreferences(event) {
     event.preventDefault();
+    const preferences = { auto_publish: autoPublish, publish_hour: Number(publishHour), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, github_url: githubUrl, topics: topics.split(",").map((item) => item.trim()).filter(Boolean), audience, tone, formats: formats.split(",").map((item) => item.trim()).filter(Boolean), image_style: imageStyle, image_alt_style: imageAltStyle };
     if (demoMode) {
-      window.localStorage.setItem("article-pulse-preferences", JSON.stringify({ auto_publish: autoPublish, publish_hour: publishHour }));
-      setMessage(autoPublish ? `Automatic publishing enabled for ${publishHour}:00 in demo mode.` : "Automatic publishing disabled.");
+      window.localStorage.setItem("article-pulse-preferences", JSON.stringify(preferences));
+      setMessage("Content identity and publishing preferences saved locally.");
       return;
     }
-    const response = await fetch("/api/preferences", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ auto_publish: autoPublish, publish_hour: Number(publishHour), timezone: Intl.DateTimeFormat().resolvedOptions().timeZone }) });
+    const response = await fetch("/api/preferences", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(preferences) });
     const result = await response.json();
     setMessage(response.ok ? "Automatic publishing preferences saved." : result.error || "Could not save preferences.");
   }
@@ -93,6 +108,7 @@ export default function DashboardClient({ initialProfile, demoMode = false }) {
     <div className="dashboard-actions"><button className="primary-button" onClick={sync}>Sync GitHub and suggest articles →</button><span>{message}</span></div>
     <div className="dashboard-grid">
       <section className="work-card"><h2>Account connections</h2><p className="muted">{demoMode ? "Demo mode simulates connections without storing credentials." : "Secrets are encrypted before storage and are never sent back to this page."}</p><div className="connection-list"><div><span>GitHub</span><b className={connected.github ? "connected" : "not-connected"}>{connected.github ? "Connected" : "Not connected"}</b><button type="button" onClick={connectGitHub}>{connected.github ? "Connected" : "Connect GitHub"}</button></div><div><span>dev.to</span><b className={connected.devto ? "connected" : "not-connected"}>{connected.devto ? "Connected" : "Not connected"}</b></div><div><span>Hashnode</span><b className={connected.hashnode ? "connected" : "not-connected"}>{connected.hashnode ? "Connected" : "Not connected"}</b></div></div><form onSubmit={connect}><select value={provider} onChange={(event) => setProvider(event.target.value)}><option value="devto">dev.to API key</option><option value="hashnode">Hashnode API token</option></select><input required type="password" placeholder="Credential" value={secret} onChange={(event) => setSecret(event.target.value)} />{provider === "hashnode" && <input required placeholder="Hashnode publication ID" value={publicationId} onChange={(event) => setPublicationId(event.target.value)} />}<button type="submit">Connect securely</button></form></section>
+      <section className="work-card"><h2>Content identity</h2><p className="muted">These saved preferences shape article ideas, writing style, SEO tags, and image descriptions for this account.</p><form onSubmit={savePreferences}><label className="field-label">GitHub profile URL<input type="url" placeholder="https://github.com/your-username" value={githubUrl} onChange={(event) => setGithubUrl(event.target.value)} /></label><label className="field-label">Topics<input placeholder="automation, Python, SaaS" value={topics} onChange={(event) => setTopics(event.target.value)} /></label><label className="field-label">Target audience<input value={audience} onChange={(event) => setAudience(event.target.value)} /></label><label className="field-label">Writing tone<input value={tone} onChange={(event) => setTone(event.target.value)} /></label><label className="field-label">Article formats<input value={formats} onChange={(event) => setFormats(event.target.value)} /></label><label className="field-label">Image style<input value={imageStyle} onChange={(event) => setImageStyle(event.target.value)} /></label><label className="field-label">Image alt-text rule<input value={imageAltStyle} onChange={(event) => setImageAltStyle(event.target.value)} /></label><button type="submit">Save content identity</button></form></section>
       <section className="work-card"><h2>Automatic publishing</h2><p className="muted">Scheduled articles publish through every connected provider. Unconnected platforms are reported as failures.</p><form onSubmit={savePreferences}><label className="toggle-row"><input type="checkbox" checked={autoPublish} onChange={(event) => setAutoPublish(event.target.checked)} /><span>Enable automatic publishing</span></label><label className="field-label">Daily publish hour<select value={publishHour} onChange={(event) => setPublishHour(event.target.value)}>{Array.from({ length: 24 }, (_, hour) => <option key={hour} value={hour}>{String(hour).padStart(2, "0")}:00</option>)}</select></label><button type="submit">Save publishing schedule</button></form></section>
       <section className="work-card"><h2>Profile signals</h2>{profile ? <><p><b>{profile.profile?.name}</b> · @{profile.profile?.login}</p><p className="muted">{profile.profile?.public_repos || 0} public repositories · languages and topics used as evidence</p></> : <p className="muted">Sync GitHub to load your public work.</p>}</section>
     </div>

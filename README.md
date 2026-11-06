@@ -83,6 +83,7 @@ Article Pulse now includes a production-oriented Next.js + Supabase application 
 - Draft-first publishing boundaries and idempotent target tracking fields.
 - Secure provider connection UI for GitHub, Hashnode, and dev.to.
 - Vercel cron endpoint for scheduled publishing runs.
+- Per-user content identity: GitHub profile URL, topics, audience, tone, article formats, image style, and alt-text rules.
 
 Run the web app locally:
 
@@ -104,6 +105,19 @@ Apply `supabase/migrations/001_initial.sql` to a Supabase project, then configur
 6. Configure GitHub, Hashnode, and dev.to credentials from the authenticated dashboard.
 
 The application is intentionally not claimed as deployed until those project credentials and redirect URLs exist. The repository contains the complete hosted application boundary, but Vercel and Supabase are separate user-owned services.
+
+### Content identity
+
+Each account can provide a GitHub profile URL and a durable publishing profile. The profile controls what suggestions emphasize and how generated drafts are shaped:
+
+- topics and areas of expertise
+- target audience
+- writing tone
+- preferred article formats
+- preferred visual style
+- image alt-text description rules
+
+Authenticated profiles are stored in the user's Supabase `profiles.preferences` JSON document under row-level security. Demo mode stores the same settings only in browser local storage. A GitHub URL is validated to `github.com` before public repository data is synchronized.
 
 ## Local configuration
 

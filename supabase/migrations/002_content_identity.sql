@@ -1,0 +1,2 @@
+-- Preferences are stored in profiles.preferences so each user's content identity
+-- stays isolated under the existing row-level security policy.
