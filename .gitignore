@@ -2,6 +2,7 @@
 .env.*
 !.env.example
 .article-publisher-state.json
+data/demo-profile.json
 __pycache__/
 .venv/
 node_modules/

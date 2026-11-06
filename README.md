@@ -145,6 +145,10 @@ Generated drafts start with `publish: false`. This protects against fabricated c
 
 For unattended publishing, set `GROWTH_AUTO_PUBLISH=true` only after configuring and testing the Hashnode/dev.to credentials. This changes generated front matter to `publish: true`; it still does not bypass platform authentication, duplicate protection, or the local scheduler.
 
+### Demo GitHub connection
+
+Without Supabase, enter a public GitHub profile URL in the dashboard and choose **Connect GitHub account**. The demo fetches only public profile and repository fields from GitHub, generates suggestions from that real data, and writes the result to `data\demo-profile.json` (ignored by Git). No GitHub token or database is required for this test path.
+
 ## SEO guidance
 
 - Write a unique, descriptive title for each article.
