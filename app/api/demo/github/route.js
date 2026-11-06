@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
-import { suggestArticles } from "../../../../lib/profile";
+import { generateSuggestions } from "../../../../lib/intelligence";
 import { assertIndependentEndpoint, boundedList, INDEPENDENT_MODE } from "../../../../lib/independent-mode";
 
 const requestSchema = z.object({
   github_url: z.string().url(),
+  intelligence_mode: z.enum(["deterministic", "ai"]).default("deterministic"),
+  preferences: z.record(z.string(), z.any()).default({}),
 });
 
 const dataDirectory = join(process.cwd(), "data");
@@ -81,7 +83,15 @@ export async function POST(request) {
     topics,
     connected_at: new Date().toISOString(),
   };
-  result.suggestions = boundedList(suggestArticles(result), INDEPENDENT_MODE.maxSuggestionsPerSync);
+  try {
+    result.suggestions = boundedList(
+      await generateSuggestions(result, parsed.data.preferences, parsed.data.intelligence_mode),
+      INDEPENDENT_MODE.maxSuggestionsPerSync,
+    );
+    result.intelligence_mode = parsed.data.intelligence_mode;
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 503 });
+  }
 
   await mkdir(dataDirectory, { recursive: true });
   await writeFile(join(dataDirectory, "demo-profile.json"), JSON.stringify(result, null, 2), "utf8");

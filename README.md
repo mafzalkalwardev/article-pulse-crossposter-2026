@@ -155,6 +155,10 @@ Article Pulse's generation path is intentionally **not AI-powered**. It has no A
 
 The demo also bounds external work: one sync uses at most 100 repositories, returns at most 3 suggestions, calls only `https://api.github.com`, and allows at most 6 demo sync requests per minute per running process. It does not scrape private data or bypass GitHub authentication/rate limits.
 
+### Optional AI-assisted intelligence
+
+The dashboard now has two modes. **Deterministic** remains the default and requires no AI credentials. **AI-assisted** is an explicit opt-in that sends a bounded, public GitHub summary to an OpenAI-compatible server-side endpoint configured with `INTELLIGENCE_PROVIDER_URL`, `INTELLIGENCE_API_KEY`, and optionally `INTELLIGENCE_MODEL`. Provider credentials are never sent to the browser. The response is parsed and evidence-checked before suggestions are shown; if the provider is unavailable, the request fails clearly instead of silently switching modes.
+
 ## SEO guidance
 
 - Write a unique, descriptive title for each article.

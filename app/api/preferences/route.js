@@ -13,6 +13,7 @@ const preferencesSchema = z.object({
   formats: z.array(z.string().min(1).max(60)).min(1).max(8),
   image_style: z.string().min(1).max(120),
   image_alt_style: z.string().min(1).max(160),
+  intelligence_mode: z.enum(["deterministic", "ai"]).default("deterministic"),
 });
 
 export async function POST(request) {
