@@ -90,7 +90,7 @@ export async function POST(request) {
       INDEPENDENT_MODE.maxSuggestionsPerSync,
     );
     result.intelligence_mode = parsed.data.intelligence_mode;
-    result.suggestions = await researchMarket(result);
+    result.suggestions = await researchMarket(result, parsed.data.preferences);
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 503 });
   }

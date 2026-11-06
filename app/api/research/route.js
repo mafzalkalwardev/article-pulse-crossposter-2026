@@ -15,13 +15,18 @@ const requestSchema = z.object({
       tags: z.array(z.string()).optional(),
     })).max(3),
   }),
+  preferences: z.object({
+    topics: z.array(z.string()).optional(),
+    audience: z.string().optional(),
+    formats: z.array(z.string()).optional(),
+  }).default({}),
 });
 
 export async function POST(request) {
   const parsed = requestSchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: "Profile suggestions are required for market research." }, { status: 400 });
   try {
-    return NextResponse.json({ researched_at: new Date().toISOString(), suggestions: await researchMarket(parsed.data.profile) });
+    return NextResponse.json({ researched_at: new Date().toISOString(), suggestions: await researchMarket(parsed.data.profile, parsed.data.preferences) });
   } catch (error) {
     return NextResponse.json({ error: error.message || "Market research failed." }, { status: 502 });
   }
