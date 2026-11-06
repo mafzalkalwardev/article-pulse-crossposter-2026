@@ -3,14 +3,31 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
 import { suggestArticles } from "../../../../lib/profile";
+import { assertIndependentEndpoint, boundedList, INDEPENDENT_MODE } from "../../../../lib/independent-mode";
 
 const requestSchema = z.object({
   github_url: z.string().url(),
 });
 
 const dataDirectory = join(process.cwd(), "data");
+const requestTimes = [];
+const maxRequestsPerMinute = 6;
+
+function enforceDemoLimit() {
+  const now = Date.now();
+  while (requestTimes[0] && requestTimes[0] < now - 60_000) requestTimes.shift();
+  if (requestTimes.length >= maxRequestsPerMinute) {
+    throw new Error("Demo GitHub sync limit reached. Wait one minute before trying again.");
+  }
+  requestTimes.push(now);
+}
 
 export async function POST(request) {
+  try {
+    enforceDemoLimit();
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 429 });
+  }
   const parsed = requestSchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: "Enter a valid GitHub profile URL." }, { status: 400 });
 
@@ -21,16 +38,18 @@ export async function POST(request) {
   }
 
   const headers = { accept: "application/vnd.github+json", "user-agent": "article-pulse-demo" };
+  const profileEndpoint = assertIndependentEndpoint(`https://api.github.com/users/${encodeURIComponent(username)}`);
+  const repositoriesEndpoint = assertIndependentEndpoint(`https://api.github.com/users/${encodeURIComponent(username)}/repos?sort=updated&per_page=${INDEPENDENT_MODE.maxRepositoriesPerSync}`);
   const [profileResponse, repositoriesResponse] = await Promise.all([
-    fetch(`https://api.github.com/users/${encodeURIComponent(username)}`, { headers, cache: "no-store" }),
-    fetch(`https://api.github.com/users/${encodeURIComponent(username)}/repos?sort=updated&per_page=100`, { headers, cache: "no-store" }),
+    fetch(profileEndpoint, { headers, cache: "no-store" }),
+    fetch(repositoriesEndpoint, { headers, cache: "no-store" }),
   ]);
   if (!profileResponse.ok || !repositoriesResponse.ok) {
     return NextResponse.json({ error: "GitHub profile could not be loaded. Check that the profile is public." }, { status: 502 });
   }
 
   const profile = await profileResponse.json();
-  const repositories = await repositoriesResponse.json();
+  const repositories = boundedList(await repositoriesResponse.json(), INDEPENDENT_MODE.maxRepositoriesPerSync);
   const languages = [...new Set(repositories.map((repo) => repo.language).filter(Boolean))].slice(0, 12);
   const topics = [...new Set(repositories.flatMap((repo) => repo.topics || []))].slice(0, 30);
   const result = {
@@ -62,7 +81,7 @@ export async function POST(request) {
     topics,
     connected_at: new Date().toISOString(),
   };
-  result.suggestions = suggestArticles(result);
+  result.suggestions = boundedList(suggestArticles(result), INDEPENDENT_MODE.maxSuggestionsPerSync);
 
   await mkdir(dataDirectory, { recursive: true });
   await writeFile(join(dataDirectory, "demo-profile.json"), JSON.stringify(result, null, 2), "utf8");

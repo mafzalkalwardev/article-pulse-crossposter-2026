@@ -149,6 +149,12 @@ For unattended publishing, set `GROWTH_AUTO_PUBLISH=true` only after configuring
 
 Without Supabase, enter a public GitHub profile URL in the dashboard and choose **Connect GitHub account**. The demo fetches only public profile and repository fields from GitHub, generates suggestions from that real data, and writes the result to `data\demo-profile.json` (ignored by Git). No GitHub token or database is required for this test path.
 
+### Independent mode and limits
+
+Article Pulse's generation path is intentionally **not AI-powered**. It has no AI SDK, model endpoint, prompt runner, or AI generation token. Titles, questions, solutions, tags, and formatting are produced by deterministic JavaScript templates from the user's saved preferences and public GitHub fields.
+
+The demo also bounds external work: one sync uses at most 100 repositories, returns at most 3 suggestions, calls only `https://api.github.com`, and allows at most 6 demo sync requests per minute per running process. It does not scrape private data or bypass GitHub authentication/rate limits.
+
 ## SEO guidance
 
 - Write a unique, descriptive title for each article.
