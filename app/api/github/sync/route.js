@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "../../../../lib/supabase-server";
 import { syncGitHubProfile } from "../../../../lib/profile";
 import { generateSuggestions } from "../../../../lib/intelligence";
+import { researchMarket } from "../../../../lib/market-research";
 import { z } from "zod";
 
 const bodySchema = z.object({ github_url: z.string().url().optional(), intelligence_mode: z.enum(["deterministic", "ai"]).default("deterministic") }).optional();
@@ -20,6 +21,7 @@ export async function POST(request) {
   const { data: existingProfile } = await supabase.from("profiles").select("preferences").eq("id", user.id).maybeSingle();
   const result = await syncGitHubProfile(undefined, username);
   const suggestions = await generateSuggestions(result, existingProfile?.preferences || {}, body.data?.intelligence_mode);
+  const researchedSuggestions = await researchMarket({ ...result, suggestions });
   await supabase.from("profiles").upsert({ id: user.id, username: user.email?.split("@")[0], display_name: result.profile.name, bio: result.profile.bio, github_login: result.profile.login, github_data: result, updated_at: new Date().toISOString() });
-  return NextResponse.json({ profile: result.profile, suggestions });
+  return NextResponse.json({ profile: result.profile, suggestions: researchedSuggestions, researched_at: new Date().toISOString() });
 }
