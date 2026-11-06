@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "../../../lib/supabase-server";
 import { encryptSecret } from "../../../lib/crypto";
 import { z } from "zod";
+import { verifyHashnodeConnection } from "../../../lib/publishers";
 
 const connectionSchema = z.object({
   provider: z.enum(["github", "hashnode", "devto"]),
@@ -16,6 +17,14 @@ export async function POST(request) {
   const parsed = connectionSchema.safeParse(await request.json());
   if (!parsed.success) return NextResponse.json({ error: "Invalid connection payload" }, { status: 400 });
   const { provider, secret, metadata = {} } = parsed.data;
+  if (provider === "hashnode") {
+    if (!metadata.publicationId) return NextResponse.json({ error: "Hashnode publication ID is required." }, { status: 400 });
+    try {
+      await verifyHashnodeConnection({ apiToken: secret, publicationId: metadata.publicationId });
+    } catch (error) {
+      return NextResponse.json({ error: error.message || "Hashnode connection could not be verified." }, { status: 400 });
+    }
+  }
   const { error } = await supabase.from("connections").upsert({
     user_id: user.id,
     provider,
