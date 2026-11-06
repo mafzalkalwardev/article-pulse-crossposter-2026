@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 220" role="img" aria-labelledby="title desc">
+  <title id="title">Article Pulse Crossposter logo</title>
+  <desc id="desc">A coral pulse mark beside the Article Pulse Crossposter wordmark.</desc>
+  <defs>
+    <linearGradient id="pulse" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#ff6b6b"/>
+      <stop offset="1" stop-color="#ffb86b"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="220" rx="36" fill="#111827"/>
+  <path d="M56 126h48l22-58 34 104 28-72h62" fill="none" stroke="url(#pulse)" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+  <circle cx="250" cy="100" r="8" fill="#f9fafb"/>
+  <text x="300" y="106" fill="#f9fafb" font-family="Inter,Segoe UI,sans-serif" font-size="34" font-weight="700">Article Pulse</text>
+  <text x="302" y="145" fill="#9ca3af" font-family="Inter,Segoe UI,sans-serif" font-size="20">Crossposter</text>
+</svg>

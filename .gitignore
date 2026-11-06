@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+.article-publisher-state.json
+__pycache__/
+.venv/
+node_modules/
+dist/

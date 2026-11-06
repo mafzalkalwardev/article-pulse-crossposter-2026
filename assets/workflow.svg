@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">Article Pulse Crossposter workflow</title>
+  <desc id="desc">Markdown article flows through validation and publishing to Hashnode and dev.to.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0 0 9 3 0 6Z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="360" rx="28" fill="#f8fafc"/>
+  <g font-family="Inter,Segoe UI,sans-serif">
+    <rect x="45" y="120" width="210" height="110" rx="18" fill="#111827"/>
+    <text x="150" y="165" text-anchor="middle" fill="#fff" font-size="22" font-weight="700">Markdown</text>
+    <text x="150" y="195" text-anchor="middle" fill="#cbd5e1" font-size="16">approved article</text>
+    <path d="M255 175h100" stroke="#64748b" stroke-width="4" marker-end="url(#arrow)"/>
+    <rect x="355" y="120" width="210" height="110" rx="18" fill="#e0f2fe"/>
+    <text x="460" y="165" text-anchor="middle" fill="#0c4a6e" font-size="22" font-weight="700">Validate</text>
+    <text x="460" y="195" text-anchor="middle" fill="#075985" font-size="16">metadata + dry run</text>
+    <path d="M565 175h100" stroke="#64748b" stroke-width="4" marker-end="url(#arrow)"/>
+    <rect x="665" y="120" width="210" height="110" rx="18" fill="#fef3c7"/>
+    <text x="770" y="165" text-anchor="middle" fill="#78350f" font-size="22" font-weight="700">Publish</text>
+    <text x="770" y="195" text-anchor="middle" fill="#92400e" font-size="16">platform payloads</text>
+    <path d="M875 150h90" stroke="#64748b" stroke-width="4" marker-end="url(#arrow)"/>
+    <path d="M875 200h90" stroke="#64748b" stroke-width="4" marker-end="url(#arrow)"/>
+    <rect x="970" y="85" width="180" height="70" rx="16" fill="#dbeafe"/>
+    <text x="1060" y="128" text-anchor="middle" fill="#1e3a8a" font-size="20" font-weight="700">Hashnode</text>
+    <rect x="970" y="195" width="180" height="70" rx="16" fill="#dcfce7"/>
+    <text x="1060" y="238" text-anchor="middle" fill="#166534" font-size="20" font-weight="700">dev.to</text>
+    <text x="600" y="310" text-anchor="middle" fill="#475569" font-size="16">Local credentials • idempotent state • auditable results</text>
+  </g>
+</svg>
