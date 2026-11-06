@@ -35,4 +35,22 @@ document.querySelector("#refresh-button").addEventListener("click", () => {
   showToast("Workspace refreshed");
 });
 document.querySelector("#preview-button").addEventListener("click", () => showToast("Preview mode is ready for the next approved article"));
+document.querySelector("#generate-button").addEventListener("click", async () => {
+  const button = document.querySelector("#generate-button");
+  button.disabled = true;
+  button.innerHTML = "Generating locally…";
+  try {
+    const response = await fetch("/api/growth/generate", { method: "POST" });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Generation failed");
+    document.querySelector("#profile-summary").textContent = `Drafted ${result.filename} with ${result.tags.length} SEO tags from ${result.profile.login}'s public work.`;
+    showToast("Draft and cover image generated locally");
+    await loadArticles();
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    button.disabled = false;
+    button.innerHTML = "Generate from GitHub <span>↗</span>";
+  }
+});
 loadArticles();

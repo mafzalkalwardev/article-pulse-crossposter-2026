@@ -32,6 +32,7 @@ Then open `http://localhost:4173`. The frontend is a responsive publishing contr
 - **Public documentation**: the workflow, configuration, and operational boundaries are documented here.
 - **Dashboard UI**: see the current publishing queue, schedule, delivery health, and recent activity at a glance.
 - **Backend API**: use the local API as the integration boundary for future Hashnode and dev.to publishing adapters.
+- **Independent Growth Mode**: derive topics from public GitHub profile and repository signals, then generate reviewable article drafts, SEO metadata, critical questions, problem/solution structure, and original SVG cover art locally without AI services or AI tokens.
 
 ## Why this project exists
 
@@ -80,6 +81,20 @@ The publishing integration is intentionally not enabled by default. Before enabl
 - Source article directory.
 - Daily run time and local timezone.
 - Whether a canonical URL is required before publishing.
+
+## Independent Growth Mode
+
+The dashboard's **Generate from GitHub** option reads only public data from the configured GitHub username (`GITHUB_USERNAME`, default `mafzalkalwardev`). It uses deterministic templates and local code to:
+
+1. Identify recurring languages, topics, and public projects.
+2. Create critical questions grounded in those signals.
+3. Write a problem/solution field note with explicit public-evidence boundaries.
+4. Generate focused title, description, tags, and canonical-image metadata.
+5. Render a unique SVG cover locally and save both files under `articles\` and `assets\generated\`.
+
+Generated drafts start with `publish: false`. This protects against fabricated claims, accidental duplicates, and automatic public posting before the author has reviewed the facts. The existing local scheduler can publish only after the draft is deliberately marked ready and platform credentials are configured.
+
+For unattended publishing, set `GROWTH_AUTO_PUBLISH=true` only after configuring and testing the Hashnode/dev.to credentials. This changes generated front matter to `publish: true`; it still does not bypass platform authentication, duplicate protection, or the local scheduler.
 
 ## SEO guidance
 
