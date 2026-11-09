@@ -21,9 +21,36 @@ export default function DashboardClient({ initialProfile, demoMode = false }) {
   const [intelligenceMode, setIntelligenceMode] = useState(initialProfile?.preferences?.intelligence_mode || "deterministic");
   const [researching, setResearching] = useState(false);
   const [drafts, setDrafts] = useState([]);
+  const [publishStatus, setPublishStatus] = useState(null);
+  const [cycleRunning, setCycleRunning] = useState(false);
+
+  function applyPublishStatus(result) {
+    setPublishStatus(result);
+    setConnected((current) => ({
+      ...current,
+      devto: Boolean(result?.connections?.devto?.connected),
+      hashnode: Boolean(result?.connections?.hashnode?.connected),
+    }));
+  }
+
+  async function loadPublishStatus() {
+    try {
+      const response = await fetch("/api/local/publish", { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok) return;
+      applyPublishStatus(result);
+    } catch {
+      setPublishStatus((current) => current);
+    }
+  }
+
+  useEffect(() => {
+    loadPublishStatus();
+  }, []);
   useEffect(() => {
     if (demoMode) {
-      setConnected(JSON.parse(window.localStorage.getItem("article-pulse-connections") || "{}"));
+      const stored = JSON.parse(window.localStorage.getItem("article-pulse-connections") || "{}");
+      setConnected((current) => ({ ...current, github: Boolean(stored.github) }));
       setDrafts(JSON.parse(window.localStorage.getItem("article-pulse-drafts") || "[]"));
       const saved = JSON.parse(window.localStorage.getItem("article-pulse-preferences") || "{}");
       setAutoPublish(Boolean(saved.auto_publish));
@@ -87,21 +114,42 @@ export default function DashboardClient({ initialProfile, demoMode = false }) {
 
   async function connect(event) {
     event.preventDefault();
-    if (demoMode) {
-      if (provider === "hashnode") {
-        setMessage("Demo mode cannot store live Hashnode credentials. Configure Supabase, then connect with a verified Personal Access Token.");
-        return;
-      }
-      const next = { ...connected, [provider]: true };
-      setConnected(next);
-      window.localStorage.setItem("article-pulse-connections", JSON.stringify(next));
-      setMessage(`${provider} demo account connected. No credentials were stored.`);
+    setMessage(provider === "hashnode" ? "Verifying the Hashnode token…" : "Verifying the dev.to API key…");
+    const response = await fetch("/api/local/connections", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ provider, secret, publicationId: provider === "hashnode" ? publicationId : undefined }),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      setMessage(result.error || "Connection could not be verified.");
       return;
     }
-    const response = await fetch("/api/connections", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ provider, secret, metadata: provider === "hashnode" ? { publicationId } : {} }) });
-    const result = await response.json();
-    setMessage(response.ok ? `${provider} connected securely.` : result.error || "Connection failed");
-    if (response.ok) setSecret("");
+    setSecret("");
+    await loadPublishStatus();
+    setMessage(result.username ? `${provider === "hashnode" ? "Hashnode" : "dev.to"} connected as ${result.username}.` : "Connection verified.");
+  }
+
+  async function runCycle() {
+    setCycleRunning(true);
+    setMessage("Running the publishing cycle…");
+    try {
+      const response = await fetch("/api/local/publish", { method: "POST" });
+      const result = await response.json();
+      if (!response.ok) {
+        setMessage(result.error || "Publishing cycle failed.");
+        return;
+      }
+      applyPublishStatus(result);
+      const deliveries = (result.lastCycle?.results || []).reduce((count, article) => {
+        return count + ["devto", "hashnode"].filter((platform) => article.platforms?.[platform]?.status === "published").length;
+      }, 0);
+      setMessage(deliveries ? `Publishing cycle finished. ${deliveries} new ${deliveries === 1 ? "post" : "posts"} sent.` : "Publishing cycle finished. No new posts were sent.");
+    } catch (error) {
+      setMessage(error.message || "Publishing cycle failed.");
+    } finally {
+      setCycleRunning(false);
+    }
   }
 
   async function connectGitHub() {
@@ -120,7 +168,7 @@ export default function DashboardClient({ initialProfile, demoMode = false }) {
       const next = { ...connected, github: true };
       setConnected(next);
       setProfile(result);
-      window.localStorage.setItem("article-pulse-connections", JSON.stringify(next));
+      window.localStorage.setItem("article-pulse-connections", JSON.stringify({ github: true }));
       window.localStorage.setItem("article-pulse-github-url", githubUrl);
       setMessage(`Connected @${result.profile.login}. Loaded ${result.repositories.length} public repositories.`);
       return;
@@ -158,12 +206,36 @@ export default function DashboardClient({ initialProfile, demoMode = false }) {
   return <div className="dashboard-body">
     <div className="dashboard-actions"><button className="primary-button" onClick={sync}>Sync GitHub and suggest articles →</button><button type="button" onClick={research} disabled={researching}>{researching ? "Researching…" : "Research market & rank ideas"}</button><span>{message}</span></div>
     <div className="dashboard-grid">
-      <section className="work-card"><h2>Account connections</h2><p className="muted">{demoMode ? "Independent mode: deterministic code only. It reads public GitHub data, uses no AI service or generation token, and stores the result in local JSON." : "Secrets are encrypted before storage and are never sent back to this page."}</p><div className="github-connect"><label className="field-label">GitHub profile URL<input type="url" value={githubUrl} onChange={(event) => setGithubUrl(event.target.value)} placeholder="https://github.com/your-username" /></label><button type="button" onClick={connectGitHub}>{connected.github ? "Refresh GitHub profile" : "Connect GitHub account"}</button></div><div className="connection-list"><div><span>GitHub</span><b className={connected.github ? "connected" : "not-connected"}>{connected.github ? "Connected" : "Not connected"}</b></div><div><span>dev.to</span><b className={connected.devto ? "connected" : "not-connected"}>{connected.devto ? "Connected" : "Not connected"}</b></div><div><span>Hashnode</span><b className={connected.hashnode ? "connected" : "not-connected"}>{connected.hashnode ? "Connected" : "Not connected"}</b></div></div><form onSubmit={connect}><select value={provider} onChange={(event) => setProvider(event.target.value)}><option value="devto">dev.to API key</option><option value="hashnode">Hashnode Personal Access Token</option></select>{provider === "hashnode" && <p className="muted">Sign in to Hashnode with Google, then create a Personal Access Token under Account settings → Developer / API tokens. The token is used only by the server to publish.</p>}<input required type="password" placeholder={provider === "hashnode" ? "Hashnode Personal Access Token" : "dev.to API key"} value={secret} onChange={(event) => setSecret(event.target.value)} />{provider === "hashnode" && <input required placeholder="Hashnode publication ID" value={publicationId} onChange={(event) => setPublicationId(event.target.value)} />}<button type="submit">Connect {provider === "hashnode" ? "your Hashnode account" : "securely"}</button>{provider === "hashnode" ? <a href="https://hashnode.com/login" target="_blank" rel="noreferrer">Open Hashnode sign-in</a> : null}</form></section>
+      <section className="work-card"><h2>Account connections</h2><p className="muted">{demoMode ? "Independent mode reads public GitHub data with no AI service. Hashnode and dev.to keys are verified with those APIs, then encrypted on this machine. A platform stays not connected until that request succeeds." : "Secrets are encrypted before storage and are never sent back to this page. Hashnode and dev.to are marked connected only after the platform accepts the key."}</p><div className="github-connect"><label className="field-label">GitHub profile URL<input type="url" value={githubUrl} onChange={(event) => setGithubUrl(event.target.value)} placeholder="https://github.com/your-username" /></label><button type="button" onClick={connectGitHub}>{connected.github ? "Refresh GitHub profile" : "Connect GitHub account"}</button></div><div className="connection-list"><div><span>GitHub</span><b className={connected.github ? "connected" : "not-connected"}>{connected.github ? "Connected" : "Not connected"}</b></div><div><span>dev.to</span><b className={connected.devto ? "connected" : "not-connected"}>{connected.devto ? "Connected" : "Not connected"}</b></div><div><span>Hashnode</span><b className={connected.hashnode ? "connected" : "not-connected"}>{connected.hashnode ? "Connected" : "Not connected"}</b></div></div><form onSubmit={connect}><select value={provider} onChange={(event) => setProvider(event.target.value)}><option value="devto">dev.to API key</option><option value="hashnode">Hashnode Personal Access Token</option></select>{provider === "hashnode" && <p className="muted">Sign in to Hashnode with Google, then create a Personal Access Token under Account settings → Developer / API tokens. The token is used only by the server to publish.</p>}<input required type="password" placeholder={provider === "hashnode" ? "Hashnode Personal Access Token" : "dev.to API key"} value={secret} onChange={(event) => setSecret(event.target.value)} />{provider === "hashnode" && <input required placeholder="Hashnode publication ID" value={publicationId} onChange={(event) => setPublicationId(event.target.value)} />}<button type="submit">Connect {provider === "hashnode" ? "your Hashnode account" : "securely"}</button>{provider === "hashnode" ? <a href="https://hashnode.com/login" target="_blank" rel="noreferrer">Open Hashnode sign-in</a> : null}</form></section>
       <section className="work-card"><h2>Content identity</h2><p className="muted">These saved preferences shape article ideas, writing style, SEO tags, and image descriptions for this account.</p><form onSubmit={savePreferences}><label className="field-label">Intelligence mode<select value={intelligenceMode} onChange={(event) => setIntelligenceMode(event.target.value)}><option value="deterministic">Deterministic — no AI, no token</option><option value="ai">AI-assisted — optional provider</option></select></label><p className="muted">{intelligenceMode === "ai" ? "AI mode is opt-in and requires a server-side OpenAI-compatible provider configuration." : "Deterministic mode stays local, bounded, and works without AI credentials."}</p><label className="field-label">GitHub profile URL<input type="url" placeholder="https://github.com/your-username" value={githubUrl} onChange={(event) => setGithubUrl(event.target.value)} /></label><label className="field-label">Topics<input placeholder="automation, Python, SaaS" value={topics} onChange={(event) => setTopics(event.target.value)} /></label><label className="field-label">Target audience<input value={audience} onChange={(event) => setAudience(event.target.value)} /></label><label className="field-label">Writing tone<input value={tone} onChange={(event) => setTone(event.target.value)} /></label><label className="field-label">Article formats<input value={formats} onChange={(event) => setFormats(event.target.value)} /></label><label className="field-label">Image style<input value={imageStyle} onChange={(event) => setImageStyle(event.target.value)} /></label><label className="field-label">Image alt-text rule<input value={imageAltStyle} onChange={(event) => setImageAltStyle(event.target.value)} /></label><button type="submit">Save content identity</button></form></section>
-      <section className="work-card"><h2>Automatic publishing</h2><p className="muted">Scheduled articles publish through every connected provider. Unconnected platforms are reported as failures.</p><form onSubmit={savePreferences}><label className="toggle-row"><input type="checkbox" checked={autoPublish} onChange={(event) => setAutoPublish(event.target.checked)} /><span>Enable automatic publishing</span></label><label className="field-label">Daily publish hour<select value={publishHour} onChange={(event) => setPublishHour(event.target.value)}>{Array.from({ length: 24 }, (_, hour) => <option key={hour} value={hour}>{String(hour).padStart(2, "0")}:00</option>)}</select></label><button type="submit">Save publishing schedule</button></form></section>
+      <section className="work-card" id="local-publish"><h2>Automatic publishing</h2><p className="muted">The server repeats this cycle every 15 minutes. Set PUBLISH_LOOP to false to stop it. It posts Markdown whose front matter says publish: true, records the returned id and url, and skips a platform that already succeeded.</p><div className="connection-list"><div><span>Loop</span><b className={publishStatus?.loop?.enabled ? "connected" : "not-connected"}>{publishStatus ? (publishStatus.loop.enabled ? `Every ${publishStatus.loop.intervalMinutes} min` : "Off") : "…"}</b></div><div><span>dev.to</span><b className={publishStatus?.connections?.devto?.connected ? "connected" : "not-connected"}>{connectionLabel(publishStatus?.connections?.devto)}</b></div><div><span>Hashnode</span><b className={publishStatus?.connections?.hashnode?.connected ? "connected" : "not-connected"}>{connectionLabel(publishStatus?.connections?.hashnode)}</b></div><div><span>Ready to publish</span><b>{publishStatus ? publishStatus.readyCount : "…"}</b></div></div><div className="cycle-result"><p className="eyebrow">Last cycle</p>{publishStatus?.lastCycle ? <CycleResult cycle={publishStatus.lastCycle} /> : <p className="muted">No publishing cycle has run yet.</p>}</div><button type="button" id="run-publish-cycle" onClick={runCycle} disabled={cycleRunning}>{cycleRunning ? "Running…" : "Run cycle now"}</button></section>
       <section className="work-card"><h2>Profile signals</h2>{profile ? <><p><b>{profile.profile?.name}</b> · @{profile.profile?.login}</p><p className="muted">{profile.profile?.public_repos || 0} public repositories · languages and topics used as evidence</p></> : <p className="muted">Sync GitHub to load your public work.</p>}</section>
     </div>
     {profile?.suggestions?.length ? <section className="suggestions"><h2>Suggested articles</h2><p className="muted">Research is constrained to your GitHub projects, saved topics, audience, and the evidence attached to each idea. Scores estimate opportunity; they do not guarantee ranking.</p><div className="suggestion-grid">{profile.suggestions.map((suggestion) => <article className="suggestion" key={suggestion.title}><p className="eyebrow">{suggestion.post_type || "Evidence-based idea"} {suggestion.market ? `· ${suggestion.market.opportunity_score ?? 0}/100 opportunity` : ""}</p><h3>{suggestion.title}</h3><p><b>Question:</b> {suggestion.problem}</p><p><b>Solution:</b> {suggestion.solution}</p>{suggestion.market ? <><p><b>Why now:</b> {suggestion.market.ranking_note || "Review related market evidence before publishing."}</p><p className="muted">Relatedness {suggestion.market.signals?.relevance ?? 0}% · demand {suggestion.market.signals?.demand ?? 0}% · engagement {suggestion.market.signals?.engagement ?? 0}% · freshness {suggestion.market.signals?.freshness ?? 0}% · evidence fit {suggestion.market.signals?.evidence_fit ?? 0}%</p><p className="muted">Research query: {(suggestion.market.query_terms || []).join(", ") || "Refresh research to record work-specific terms."}</p><details><summary>View related live sources ({suggestion.market.sources?.length ?? 0})</summary><ul>{(suggestion.market.sources || []).map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a><span className="muted"> — matched {(source.matched_terms || []).join(", ") || "related terms"} · {source.points} points · {source.comments} comments</span></li>)}</ul></details></> : null}<div className="tag-row">{(suggestion.tags || []).map((tag) => <span key={tag}>{tag}</span>)}</div><button onClick={() => saveSuggestion(suggestion)}>Create reviewable draft</button></article>)}</div></section> : null}
     {demoMode && drafts.length ? <section className="suggestions"><h2>Review queue</h2><p className="muted">{drafts.length} local draft{drafts.length === 1 ? "" : "s"} created. Nothing is published automatically from this queue.</p><div className="suggestion-grid">{drafts.map((draft) => <article className="suggestion" key={draft.id}><p className="eyebrow">{draft.market?.opportunity_score ? `${draft.market.opportunity_score}/100 opportunity` : "Draft"}</p><h3>{draft.title}</h3><p className="muted">{draft.created_at ? new Date(draft.created_at).toLocaleString() : ""}</p><p><b>Format:</b> {draft.body_markdown.split("\n")[4] || "problem-solution"}</p><button type="button" onClick={() => navigator.clipboard?.writeText(draft.body_markdown).then(() => setMessage("Draft Markdown copied to the clipboard."))}>Copy Markdown</button></article>)}</div></section> : null}
+  </div>;
+}
+
+function connectionLabel(connection) {
+  if (!connection) return "…";
+  if (!connection.connected) return "Not connected";
+  return connection.username ? `Connected as ${connection.username}` : "Connected";
+}
+
+function platformText(platform) {
+  if (!platform) return "not run";
+  if (platform.status === "published") return "published";
+  if (platform.status === "skipped") return "skipped";
+  if (platform.status === "not_connected") return "not connected";
+  if (platform.status === "failed") return platform.error || "failed";
+  return platform.status;
+}
+
+function CycleResult({ cycle }) {
+  const when = new Date(cycle.ranAt);
+  const stamp = Number.isNaN(when.getTime()) ? cycle.ranAt : when.toLocaleString();
+  return <div>
+    <p className="muted">{stamp} · {cycle.readyCount} ready · {cycle.draftCount} draft{cycle.draftCount === 1 ? "" : "s"} left unpublished</p>
+    {cycle.results?.length ? <ul className="cycle-list">{cycle.results.map((article) => <li key={article.file}><strong>{article.title}</strong><span>dev.to {platformText(article.platforms?.devto)}{article.platforms?.devto?.url ? <> · <a href={article.platforms.devto.url}>{article.platforms.devto.url}</a></> : null}</span><span>Hashnode {platformText(article.platforms?.hashnode)}{article.platforms?.hashnode?.url ? <> · <a href={article.platforms.hashnode.url}>{article.platforms.hashnode.url}</a></> : null}</span></li>)}</ul> : <p className="muted">No ready articles were waiting.</p>}
   </div>;
 }
