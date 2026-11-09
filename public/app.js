@@ -8,18 +8,41 @@ function showToast(message) {
   window.setTimeout(() => toast.classList.remove("show"), 2800);
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+async function fetchArticles() {
+  const candidates = ["/api/articles", "articles.json"];
+  let lastError = new Error("Article queue unavailable");
+  for (const url of candidates) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Article queue unavailable");
+      const data = await response.json();
+      if (!Array.isArray(data.articles)) throw new Error("Article queue unavailable");
+      return data.articles;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
 async function loadArticles() {
   articleList.innerHTML = '<div class="loading">Loading Markdown articles…</div>';
   try {
-    const response = await fetch("/api/articles");
-    if (!response.ok) throw new Error("Article API unavailable");
-    const { articles } = await response.json();
+    const articles = await fetchArticles();
     articleCount.textContent = `${articles.length} files`;
     articleList.innerHTML = articles.length
       ? articles.map((article) => `
         <div class="article-row">
           <span class="article-file">MD</span>
-          <div><strong>${article.title}</strong><span>${article.file}${article.tags.length ? ` · ${article.tags.join(", ")}` : ""}</span></div>
+          <div><strong>${escapeHtml(article.title)}</strong><span>${escapeHtml(article.file)}${article.tags.length ? ` · ${escapeHtml(article.tags.join(", "))}` : ""}</span></div>
           <span class="${article.status === "Ready" ? "ready" : "draft"}">${article.status}</span>
         </div>`).join("")
       : '<div class="loading">No Markdown articles yet. Add one to the articles folder.</div>';
@@ -36,6 +59,11 @@ document.querySelector("#refresh-button").addEventListener("click", () => {
 });
 document.querySelector("#preview-button").addEventListener("click", () => showToast("Preview mode is ready for the next approved article"));
 document.querySelector("#generate-button").addEventListener("click", async () => {
+  const local = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "[::1]";
+  if (!local) {
+    showToast("Draft generation runs in the local app. Start it with npm start.");
+    return;
+  }
   const button = document.querySelector("#generate-button");
   button.disabled = true;
   button.innerHTML = "Generating locally…";

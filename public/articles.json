@@ -1,0 +1,10 @@
+{
+  "articles": [
+    {
+      "title": "How I approach article-publishing: questions, problems, and practical solutions",
+      "file": "how-i-approach-article-publishing-questions-problems-and-practical-solutions.md",
+      "tags": ["article-publishing", "automation", "developer-tools", "software-engineering", "productivity"],
+      "status": "Draft"
+    }
+  ]
+}
