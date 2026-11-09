@@ -3,6 +3,7 @@
 !.env.example
 .article-publisher-state.json
 data/demo-profile.json
+data/local-connections.json
 __pycache__/
 .venv/
 node_modules/

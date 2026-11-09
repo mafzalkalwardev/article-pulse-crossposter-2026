@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "check": "next build"
+    "check": "next build",
+    "test": "node --experimental-default-type=module --test"
   },
   "engines": {
     "node": ">=20"
