@@ -1,0 +1,72 @@
+# Article Pulse
+
+Article Pulse is a publishing workspace made by INDUS Web Agency (https://induswebagency.com). The public page is https://articlepulse.induswebagency.com/. The source repository is https://github.com/mafzalkalwardev/article-pulse-crossposter-2026. Package version in the repository is 1.0.0. It expects Node.js 20 or newer.
+
+This document describes behavior present in the repository. It does not add customer counts, testimonials, ratings, prices, or accuracy claims. The repository does not declare a license. Its README says to choose a license before accepting outside contributions.
+
+## What Article Pulse is
+
+Article Pulse keeps Markdown articles, a per-account content identity, and connections for Hashnode and dev.to in one workflow. Deterministic mode writes article suggestions with local JavaScript templates and does not call an AI service. When a Supabase project is configured, the same Next.js app can store a profile, encrypt provider secrets, save drafts, and publish or schedule them.
+
+There are two ways to run it:
+
+1. The Next.js workspace: `npm install`, then `npm run dev`. Without Supabase environment variables the app stays in demo mode.
+2. The local control room: `node server.js`, which listens on port 4173. `npm start` runs `next start`, not the control room.
+
+## Content identity
+
+Each account can save a GitHub profile URL, topics, target audience, writing tone, article formats, image style, and an image alt-text rule. Authenticated profiles store those preferences in Supabase `profiles.preferences` under row-level security. Demo mode stores the same settings in browser local storage. A GitHub URL is validated to github.com before public repository data is synchronized.
+
+Intelligence mode has two settings. Deterministic is the default and needs no AI credentials. AI-assisted is an explicit opt-in. It sends a bounded public GitHub summary to an OpenAI-compatible server-side endpoint configured with `INTELLIGENCE_PROVIDER_URL`, `INTELLIGENCE_API_KEY`, and optionally `INTELLIGENCE_MODEL`. Provider credentials are not sent to the browser. The response is parsed and checked so evidence names must be repository full names that were actually supplied. If the provider is unavailable, the request fails instead of silently switching modes.
+
+## Suggestions and limits
+
+Independent mode does not use an AI SDK, a model endpoint, or an AI generation token. One sync uses at most 100 repositories and returns at most 3 suggestions. Demo sync calls only `https://api.github.com` and allows at most 6 demo sync requests per minute per running process. It does not scrape private data.
+
+Deterministic titles, questions, solutions, and tags are produced from the saved preferences and public GitHub fields such as languages, topics, and repository descriptions.
+
+The hosted GitHub connect route redirects to GitHub OAuth with scopes `read:user` and `repo` when `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` are set. Demo mode does not use that OAuth route. It reads the public profile and repository endpoints.
+
+## Market research
+
+Before a draft, the dashboard can query current public Hacker News discussions for up to three candidate topics, using the Algolia Hacker News search API. It assigns an opportunity estimate from relatedness, conversation volume, points and comments, freshness, and fit with the synced repository evidence. It also labels a format such as a case study, architecture guide, practical guide, or problem-solution post. The interface states that scores estimate opportunity and do not guarantee ranking. Search placement also depends on originality, quality, links, indexing, competition, and reader response.
+
+## Drafts
+
+Choosing "Create reviewable draft" does not publish. In demo mode the Markdown stays in browser local storage. With Supabase, the draft is inserted into the user's articles table with draft status.
+
+The local control room can `POST /api/growth/generate`. That route reads the public GitHub user named by `GITHUB_USERNAME`, writes a Markdown file under `articles/`, and writes an SVG cover under `assets/generated/`. Generated drafts use `publish: false` unless `GROWTH_AUTO_PUBLISH=true`. Setting that flag changes the front matter to `publish: true`. It does not bypass platform authentication.
+
+The local article list marks a file Ready only when the Markdown contains `publish: true`. Otherwise it is a Draft. Files are expected to use YAML front matter with title, description, tags, cover image, canonical URL, and the publish flag.
+
+## Publishing
+
+The hosted adapters post to two platforms:
+
+- dev.to, via `POST https://dev.to/api/articles`, with the title, Markdown body, up to four tags, and `canonical_url` when one is set.
+- Hashnode, via the Hashnode GraphQL API at `https://gql-beta.hashnode.com/`, using `publishPost`, with the title, Markdown content, up to five tag slugs, and `originalArticleURL` when a canonical URL is set.
+
+Connecting Hashnode requires a personal access token and a publication ID. The server verifies the token and publication before encrypting the secret. The repository notes that Hashnode API publishing may require the publication's Pro plan and permission to publish. Demo mode does not store a live Hashnode token. A dev.to API key is encrypted and stored; the connection route does not show a separate verification request for that key.
+
+Secrets in the hosted app are encrypted with AES-256-GCM using `APP_ENCRYPTION_KEY` before they are written to Supabase. Profiles, connections, and articles use row-level security. The repository stores environment templates, not credentials.
+
+The manual publish route refuses an article whose status is already published and returns the stored platform results. A successful run stores each platform result on the article. If a platform is not connected, that platform is reported as a failure.
+
+Automatic publishing is off until it is enabled. The dashboard can save a daily publish hour and a time zone. `vercel.json` schedules `GET /api/cron/publish` every 15 minutes. That route requires `Authorization: Bearer CRON_SECRET`, then publishes articles whose status is `scheduled` and whose `scheduled_for` time has passed.
+
+The README's planned workflow mentions a dry run of platform payloads. The current server and Next.js routes do not expose a separate dry-run command.
+
+## What this product does not claim
+
+- No price is listed. You run the app on your own machine. Hosted sign-in and storage use your Supabase project. The scheduled route uses your Vercel project. Hashnode may have its own plan requirement.
+- No user count, testimonial, star rating, or delivery-success rate is published by the repository.
+- Opportunity scores are estimates, not a promise that an article will rank.
+- A public GitHub repository does not make the scheduler a shared hosted service.
+- The application is not described as already deployed. Vercel and Supabase are separate projects the operator configures.
+- No license file is included yet.
+
+## Contact and source
+
+- Maker: INDUS Web Agency, https://induswebagency.com
+- Source: https://github.com/mafzalkalwardev/article-pulse-crossposter-2026
+- This site: https://articlepulse.induswebagency.com/

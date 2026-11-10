@@ -1,0 +1,26 @@
+# Article Pulse
+
+> Article Pulse is a publishing workspace from INDUS Web Agency. It turns public GitHub evidence into reviewable Markdown drafts and can publish an approved article to Hashnode and dev.to.
+
+The source is a public GitHub repository you run yourself with Node.js 20 or newer. Deterministic mode is the default and does not call an AI service. Hosted accounts, encrypted credentials, and scheduled publishing use your own Supabase and Vercel projects. The repository does not list a price, a user count, a rating, or a ranking guarantee.
+
+## Start here
+
+- [Article Pulse](https://articlepulse.induswebagency.com/): Product definition, features, workflow, use cases, and FAQ
+- [Full product notes](https://articlepulse.induswebagency.com/llms-full.txt): Longer plain-text description of what the code does and what it does not claim
+- [Source code](https://github.com/mafzalkalwardev/article-pulse-crossposter-2026): GitHub repository
+- [INDUS Web Agency](https://induswebagency.com): The maker
+
+## What it does
+
+- Keeps articles as Markdown with YAML front matter: title, description, tags, cover image, canonical URL, and a publish flag
+- Suggests at most three article ideas from a public GitHub profile, at most 100 repositories per sync, using deterministic templates
+- Can query public Hacker News discussions and attach an opportunity estimate that is not a ranking promise
+- Publishes to Hashnode through the Hashnode GraphQL API and to dev.to through the dev.to articles API, including a canonical URL when one is set
+- Encrypts hosted provider secrets with AES-256-GCM before storing them in Supabase under row-level security
+- Offers an optional AI-assisted mode that sends a bounded public GitHub summary to a server-side OpenAI-compatible endpoint you configure
+
+## Install
+
+- Workspace: clone the repository, run `npm install`, then `npm run dev`
+- Local control room: `node server.js`, then open http://localhost:4173
