@@ -1,0 +1,25 @@
+{
+  "name": "Article Pulse",
+  "short_name": "Article Pulse",
+  "description": "Reviewable Markdown drafts from public GitHub evidence, with publishing to Hashnode and dev.to.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "browser",
+  "background_color": "#f3efe6",
+  "theme_color": "#141b2b",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
