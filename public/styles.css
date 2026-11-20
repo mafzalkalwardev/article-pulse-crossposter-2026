@@ -3,6 +3,8 @@
 :root { --ink:#172033; --muted:#758096; --line:#e8ebf1; --paper:#f8fafc; --white:#fff; --coral:#ff6b5f; --navy:#1d273b; --blue:#6e9cfb; --green:#41b79a; }
 * { box-sizing:border-box; }
 body { margin:0; color:var(--ink); background:var(--paper); font-family:"DM Sans",sans-serif; }
+.official-site { margin:0; padding:9px 6vw; background:var(--navy); color:#d5deea; font-size:12px; line-height:1.4; text-align:center; }
+.official-site a { color:#fff; font-weight:600; text-underline-offset:2px; }
 button { font:inherit; cursor:pointer; }
 .topbar { height:78px; display:flex; align-items:center; justify-content:space-between; padding:0 6vw; background:var(--white); border-bottom:1px solid var(--line); }
 .brand { display:flex; align-items:center; gap:11px; color:var(--ink); text-decoration:none; }
